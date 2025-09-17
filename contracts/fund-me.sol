@@ -14,10 +14,11 @@ contract FundMe {
     address[] public funders;
 
     // Could we make this constant?  /* hint: no! We should make it immutable! */
-    address public /* immutable */ i_owner;
+    address public immutable i_owner;
 
     uint256 public constant MINIMUM_USD = 50 * 10 ** 18;
     
+    /* A constructor is an optional function that is executed upon contract creation. */
     constructor() {
         i_owner = msg.sender;
     }
@@ -35,7 +36,15 @@ contract FundMe {
         AggregatorV3Interface priceFeed = AggregatorV3Interface(0x694AA1769357215DE4FAC081bf1f309aDC325306);
         return priceFeed.version();
     }
-    
+
+    /* Modifiers are code that can be run before and / or after a function call.
+
+       Modifiers can be used to:
+
+       1. Restrict access
+       2. Validate inputs
+       3. Guard against reentrancy hack
+    */
     modifier onlyOwner {
         // require(msg.sender == owner);
         if (msg.sender != i_owner) revert NotOwner();
@@ -43,6 +52,7 @@ contract FundMe {
     }
     
     function withdraw() public onlyOwner {
+        /* FOR LOOP SYNTAX: (starting index, ending index, step amount) */
         for (uint256 funderIndex=0; funderIndex < funders.length; funderIndex++){
             address funder = funders[funderIndex];
             addressToAmountFunded[funder] = 0;

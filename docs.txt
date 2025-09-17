@@ -1,0 +1,132 @@
+The way you write your Solidity code can significantly impact the amount of gas it consumes. Here's a breakdown of how code structure affects gas costs:
+
+1. Data Storage:
+
+    Storage vs. Memory vs. Calldata:
+        Storage: The most expensive place to store data. Data in storage persists across function calls and transactions.
+        Memory: Cheaper than storage, but data is only stored for the duration of a function call.
+        Calldata: The cheapest option for read-only data passed into a function.
+    Packing Variables: Solidity uses 32-byte slots for storage. If you have multiple variables that together fit into a single slot, packing them can save gas.
+    Example:
+
+pragma solidity ^0.8.0;
+
+contract GasExample {
+    // Unpacked - uses 3 storage slots
+    uint8 public a;  // 1 byte
+    uint256 public b; // 32 bytes
+    uint8 public c;  // 1 byte
+
+    // Packed - uses 1 storage slot
+    uint8 public a_packed;
+    uint8 public c_packed;
+    uint256 public b_packed;
+
+    constructor() {
+        a = 1;
+        b = 2;
+        c = 3;
+
+        a_packed = 1;
+        c_packed = 3;
+        b_packed = 2;
+    }
+}
+
+2. Loops:
+
+    Complexity: The more iterations a loop has, the more gas it will consume.
+    Optimizations: Try to minimize the number of iterations or use alternative data structures that allow you to achieve the same result with fewer operations.
+    Example:
+
+pragma solidity ^0.8.0;
+
+contract LoopExample {
+    uint256[] public data;
+
+    function expensiveLoop(uint256 size) external {
+        for (uint256 i = 0; i < size; i++) {
+            data.push(i); // Each push costs gas
+        }
+    }
+
+    function cheaperLoop(uint256 size) external {
+        // Pre-allocate memory and write directly
+        uint256[] memory temp = new uint256[](size);
+        for (uint256 i = 0; i < size; i++) {
+            temp[i] = i;
+        }
+        data = temp; // Assign to storage once
+    }
+}
+
+3. Function Calls:
+
+    External vs. Internal:
+        External calls are more expensive than internal calls because they involve message calls between contracts.
+        Internal calls are simple jump instructions within the same contract.
+    Function Modifiers: Modifiers add extra checks and logic, which can increase gas costs.
+    Example:
+
+pragma solidity ^0.8.0;
+
+contract FunctionCallExample {
+    uint256 public value;
+
+    function internalIncrement(uint256 x) internal {
+        value += x;
+    }
+
+    function externalIncrement(uint256 x, address contractAddress) external {
+        // Calling another contract is more expensive
+        (bool success, ) = contractAddress.call(abi.encodeWithSignature("increment(uint256)", x));
+        require(success, "External call failed");
+    }
+
+    function increment(uint256 x) external {
+        internalIncrement(x); // Internal call
+    }
+}
+
+4. Data Types:
+
+    Smaller Types: Using smaller data types (e.g., uint8 instead of uint256) can save gas if you pack variables efficiently.
+    Booleans: Booleans are cheaper to operate on than larger integer types.
+    Example:
+
+pragma solidity ^0.8.0;
+
+contract DataTypeExample {
+    uint8 public smallNumber;
+    uint256 public largeNumber;
+
+    function setNumbers(uint8 small, uint256 large) external {
+        smallNumber = small;
+        largeNumber = large;
+    }
+}
+
+5. String Manipulation:
+
+    String operations (e.g., concatenation, comparison) can be expensive. Try to minimize string manipulation or use more efficient alternatives.
+
+6. Contract Size:
+
+    Larger contracts consume more gas for deployment. Try to keep your contracts as small and focused as possible.
+
+7. View and Pure Functions:
+
+    view and pure functions don't modify the blockchain state, so they don't cost gas when called externally. Use these whenever possible for read-only operations.
+
+8. Caching:
+
+    Caching frequently accessed data in memory can reduce gas costs, especially within loops.
+
+General Tips:
+
+    Use Libraries: Libraries can help reduce code duplication and contract size.
+    Avoid Unnecessary Operations: Remove any code that doesn't contribute to the functionality of your contract.
+    Use Assembly (with caution): For very gas-sensitive operations, you can use inline assembly to optimize the code. However, this can make your code harder to read and maintain.
+    Solidity Optimizer: Enable the Solidity optimizer during compilation to have the compiler automatically apply gas-saving optimizations.
+
+By being mindful of these factors and writing efficient code, you can significantly reduce the gas costs of your smart contracts.
